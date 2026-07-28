@@ -250,6 +250,8 @@ function App() {
       <div style={{ background: '#0a0a0a', width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
         <PetalCanvas />
         <p style={{
+          margin: 0,
+          textAlign: 'center',
           color: 'rgba(255, 255, 255, 0.3)',
           fontFamily: "'Cormorant Garamond', serif",
           fontSize: '1.5rem',
