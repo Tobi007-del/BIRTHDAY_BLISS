@@ -1,0 +1,104 @@
+/* =========================================================================
+   GLOBAL CSS ARCHITECTURE
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@300;400;600&display=swap');
+
+:root {
+  /* Dynamic Lighting Variables (Injected by sia-reactor via JS) */
+  --mouse-x: 50vw;
+  --mouse-y: 50vh;
+  --scroll-progress: 0;
+
+  /* Premium Color Palette */
+  --bg-color: #050505;
+  --text-primary: #f0f0f0;
+  --text-secondary: #a0a0a0;
+  --glass-bg: rgba(20, 20, 20, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glow-color: rgba(255, 120, 150, 0.15); /* Romantic tint */
+  --accent: #ff8fa3;
+
+  /* Layout Constants */
+  --z-canvas: 0;
+  --z-bg: 10;
+  --z-content: 20;
+  --z-nav: 100;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+  /* Smooth scroll but GSAP might hijack it */
+  overscroll-behavior: none; 
+}
+
+/* Custom Webkit Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* =========================================================================
+   TYPOGRAPHY
+   ========================================================================= */
+h1, h2, h3, h4, .serif {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 400;
+}
+
+/* =========================================================================
+   DYNAMIC LIGHTING (THE CSS BLACK BOX MAGIC)
+   ========================================================================= */
+.ambient-light {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: var(--z-bg);
+  /* The magic radial gradient tracking the mouse */
+  background: radial-gradient(
+    800px circle at var(--mouse-x) var(--mouse-y),
+    var(--glow-color),
+    transparent 40%
+  );
+  transition: opacity 0.5s ease;
+}
+
+/* =========================================================================
+   UTILITIES & GLASSMORPHISM
+   ========================================================================= */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.absolute-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
