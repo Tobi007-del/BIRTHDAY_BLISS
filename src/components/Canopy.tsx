@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useReactor } from 'sia-reactor/adapters/react';
 import { store } from '../store';
 
