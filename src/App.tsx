@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -7,12 +7,102 @@ import { AmbienceCanvas } from './components/AmbienceCanvas';
 import { Canopy } from './components/Canopy';
 import { Roots } from './components/Roots';
 import { PlayButton } from './components/PlayButton';
+import { AudioController } from './components/AudioController';
 import { store } from './store';
 import { useReactor } from 'sia-reactor/adapters/react';
 import './styles/index.css';
 import './styles/app.css';
 
 gsap.registerPlugin(ScrollTrigger);
+
+const MemoryCard: React.FC<{ photo: any; index: number; isLeft: boolean }> = ({ photo, index, isLeft }) => {
+  const isVideo = photo.src.match(/\.(mp4|webm|mov)$/i);
+  const mediaRef = useRef<any>(null); // Shared ref for both img and video
+  
+  // Outer ambient glow (Apple Music style)
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Inner ambient fill (Fills the black bars of object-fit: contain)
+  const innerCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const media = mediaRef.current;
+    const canvas = canvasRef.current;
+    const innerCanvas = innerCanvasRef.current;
+    if (!media || !canvas || !innerCanvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const innerCtx = innerCanvas.getContext('2d');
+    if (!ctx || !innerCtx) return;
+
+    // Ultra-low resolution (4x4) is heavily performant because it forces the browser's GPU 
+    // to do hardware-accelerated bilinear filtering (stretching it to 100% width/height).
+    canvas.width = 4;
+    canvas.height = 4;
+    innerCanvas.width = 4;
+    innerCanvas.height = 4;
+
+    if (isVideo) {
+      const handleTimeUpdate = () => {
+        if (media.readyState >= 1) {
+          ctx.drawImage(media, 0, 0, canvas.width, canvas.height);
+          innerCtx.drawImage(media, 0, 0, innerCanvas.width, innerCanvas.height);
+        }
+      };
+      media.addEventListener('timeupdate', handleTimeUpdate);
+      return () => media.removeEventListener('timeupdate', handleTimeUpdate);
+    } else {
+      const drawImage = () => {
+        ctx.drawImage(media, 0, 0, canvas.width, canvas.height);
+        innerCtx.drawImage(media, 0, 0, innerCanvas.width, innerCanvas.height);
+      };
+      if (media.complete) {
+        drawImage();
+      } else {
+        media.addEventListener('load', drawImage);
+        return () => media.removeEventListener('load', drawImage);
+      }
+    }
+  }, [isVideo, photo.src]);
+
+  return (
+    <div className={`timeline-item ${isLeft ? 'left' : 'right'}`} data-photo-index={index}>
+      <div className="card-wrapper">
+        {/* Outer Glow Canvas used for BOTH video and images */}
+        <canvas ref={canvasRef} className="card-ambient" aria-hidden="true" />
+        
+        <div className="memory-card">
+          <div className="card-face card-front" style={{ position: 'relative' }}>
+            {/* Inner Fill Canvas used for BOTH video and images */}
+            <canvas ref={innerCanvasRef} className="card-inner-ambient" aria-hidden="true" />
+            
+            {isVideo ? (
+              <video
+                ref={mediaRef}
+                src={photo.src}
+                loop
+                muted
+                playsInline
+                onContextMenu={(e) => e.preventDefault()}
+                className="memory-media-video"
+                style={{ display: 'block', width: '100%', height: '100%', minHeight: '40vh', maxHeight: '75vh', objectFit: 'contain', opacity: 0.9, position: 'relative', zIndex: 1 }}
+              />
+            ) : (
+              <img 
+                ref={mediaRef} 
+                src={photo.src} 
+                alt="Memory" 
+                style={{ position: 'relative', zIndex: 1 }} 
+              />
+            )}
+          </div>
+          <div className="card-face card-back">
+            <p>{photo.description}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 function BirthdayBliss() {
   const s = useReactor(store);
@@ -62,7 +152,7 @@ function BirthdayBliss() {
       scrollTrigger: {
         trigger: timelineRef.current,
         start: 'top center',
-        end: 'bottom center',
+        end: 'bottom center', // Perfect 1:1 mapping with the viewport center
         scrub: true,
         invalidateOnRefresh: true,
       },
@@ -75,7 +165,7 @@ function BirthdayBliss() {
     // Set all cards hidden first
     gsap.set(items, { opacity: 0, scale: 0.6, rotation: 15, y: 200 });
 
-    items.forEach((item: any) => {
+    items.forEach((item: any, index: number) => {
       const wrapper = item.querySelector('.card-wrapper');
       const card = item.querySelector('.memory-card');
       // Start with words side showing (rotateY: 180)
@@ -85,6 +175,7 @@ function BirthdayBliss() {
         trigger: item,
         start: 'top 80%',
         onEnter: () => {
+          store.state.activeMediaIndex = index;
           item.classList.add('in-view');
           gsap.set(card, { rotateY: 180 }); // Always guarantee text side shows first
           // 1. Enter with words side already showing, pop in
@@ -100,6 +191,7 @@ function BirthdayBliss() {
           });
         },
         onEnterBack: () => {
+          store.state.activeMediaIndex = index;
           item.classList.add('in-view');
         },
         onLeave: () => {
@@ -135,7 +227,37 @@ function BirthdayBliss() {
       },
     });
 
+    ScrollTrigger.create({
+      trigger: '.chapter-climax',
+      start: 'top 50%',
+      onEnter: () => {
+        store.state.isOutroVisible = true;
+      },
+      onLeaveBack: () => {
+        store.state.isOutroVisible = false;
+      }
+    });
+
   }, { scope: containerRef });
+
+  React.useEffect(() => {
+    // Auto-play and pause videos when they enter/leave the viewport
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const video = entry.target as HTMLVideoElement;
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      });
+    }, { threshold: 0.1 });
+
+    const videos = document.querySelectorAll('.memory-media-video, .outro-media-video');
+    videos.forEach(v => observer.observe(v));
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="app-container" ref={containerRef}>
@@ -154,6 +276,27 @@ function BirthdayBliss() {
 
       {/* CHAPTER 1 */}
       <section className="chapter-intro">
+        {s.data.intro_bg_video && (
+          <video
+            src={s.data.intro_bg_video}
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100vh',
+              objectFit: 'cover',
+              zIndex: 0,
+              opacity: 0.4,
+              WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
+              maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)'
+            }}
+          />
+        )}
         <Canopy />
         {/* Text is rendered HERE in App, outside Canopy's stacking context entirely.
             z-index 200 means NOTHING in the page can ever render over this text. */}
@@ -182,34 +325,40 @@ function BirthdayBliss() {
         </div>
 
         {/* The Massive Memories */}
-        {s.data.photos.map((photo: any, i: number) => {
-          const isLeft = i % 2 === 0;
-          return (
-            <div key={i} className={`timeline-item ${isLeft ? 'left' : 'right'}`} data-photo-index={i}>
-              <div className="card-wrapper">
-                {/* Apple Music-style ambient glow pulled from the photo */}
-                <div
-                  className="card-ambient"
-                  style={{ backgroundImage: `url(${photo.src})` }}
-                />
-                <div className="memory-card">
-                  <div className="card-face card-front">
-                    <img src={photo.src} alt="Memory" />
-                  </div>
-                  <div className="card-face card-back">
-                    <p>{photo.description}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {s.data.photos.map((photo: any, i: number) => (
+          <MemoryCard key={i} photo={photo} isLeft={i % 2 === 0} index={i} />
+        ))}
       </section>
 
       {/* CHAPTER 3 */}
       <section className="chapter-climax" ref={climaxRef}>
+        {s.data.outro_video && (
+          <video
+            src={s.data.outro_video}
+            loop
+            muted
+            playsInline
+            onContextMenu={(e) => e.preventDefault()}
+            className="outro-media-video"
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              width: '100%',
+              height: '100vh',
+              objectFit: 'cover',
+              zIndex: 0,
+              opacity: 0.95,
+              WebkitMaskImage: 'linear-gradient(to top, black 85%, transparent 100%)',
+              maskImage: 'linear-gradient(to top, black 85%, transparent 100%)'
+            }}
+          />
+        )}
         <Roots wish={s.data.final_wish} />
       </section>
+
+      {/* Audio Controller */}
+      <AudioController />
 
       {/* Floating Auto-Play Controller */}
       <PlayButton />

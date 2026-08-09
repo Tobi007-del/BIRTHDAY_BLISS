@@ -1,12 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { store } from '../store';
 
 interface AmbienceCanvasProps {
   photos: { src: string }[];
 }
 
-/**
- * TMG Media Player AMBIENT_BUILD config (with opacity adjusted to 0.35)
- */
 export const AMBIENT_BUILD = {
   blur: 80,
   opacity: 0.5,
@@ -14,117 +12,93 @@ export const AMBIENT_BUILD = {
   smoothness: 0.3,
 };
 
-/**
- * AmbienceCanvas — built directly from TMG Media Player's AmbiencePlug architecture.
- *
- * Implements TMG's exact config and rendering pipeline:
- *  - Small resolution (32px width) heavily performant for blurs, preserving aspect ratio
- *  - Uses AMBIENT_BUILD.blur and AMBIENT_BUILD.opacity in the canvas filter
- *  - Uses AMBIENT_BUILD.smoothness (0.3 alpha) when transitioning to new memories without clearing,
- *    creating a smooth alpha blend over previous frames
- *  - Uses AMBIENT_BUILD.interval (100ms) to throttle glow updates
- */
+import { useReactor } from 'sia-reactor/adapters/react';
+
 export function AmbienceCanvas({ photos }: AmbienceCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const currentSrcRef = useRef<string>('');
-  const imgCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
-  const pendingSrcRef = useRef<string>('');
+  const activeMediaRef = useRef<HTMLImageElement | HTMLVideoElement | null>(null);
   const isFirstDrawRef = useRef<boolean>(true);
 
-  const drawPhoto = useCallback((img: HTMLImageElement, flush = false) => {
+  const drawMedia = useCallback((media: HTMLImageElement | HTMLVideoElement, flush = false) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d', { alpha: false });
     if (!canvas || !ctx) return;
 
-    // TMG syncGlow logic:
-    // (this.context.globalAlpha = flush ? 1.0 : this.config.smoothness), flush && this.context.clearRect(...)
     ctx.globalAlpha = flush ? 1.0 : AMBIENT_BUILD.smoothness;
     if (flush) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(media, 0, 0, canvas.width, canvas.height);
   }, []);
 
-  const loadAndDraw = useCallback((src: string) => {
-    if (currentSrcRef.current === src) return;
-    currentSrcRef.current = src;
-
-    const flush = isFirstDrawRef.current;
-    if (flush) {
-      isFirstDrawRef.current = false;
-    }
-
-    const cached = imgCacheRef.current.get(src);
-    if (cached && cached.complete) {
-      drawPhoto(cached, flush);
-    } else {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = src;
-      imgCacheRef.current.set(src, img);
-      img.onload = () => {
-        if (pendingSrcRef.current === src) drawPhoto(img, flush);
-      };
-      pendingSrcRef.current = src;
-    }
-  }, [drawPhoto]);
+  useReactor(store);
+  const { activeMediaIndex } = store.state;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Small resolution is heavily performant for blurs; preserve aspect ratio (TMG line 82-83)
-    canvas.width = 32;
-    canvas.height = Math.round(32 / (window.innerWidth / window.innerHeight));
+    // Use microscopic resolution matching tmg-media-player for immense GPU performance savings
+    const ar = window.innerWidth / window.innerHeight;
+    if (ar >= 1) {
+      canvas.width = 4;
+      canvas.height = Math.max(2, Math.round(4 / ar));
+    } else {
+      canvas.height = 4;
+      canvas.width = Math.max(2, Math.round(4 * ar));
+    }
 
-    // Pre-cache all photos so drawing is instant when scrolled to
+    // Pre-cache images in browser to ensure they are ready when scrolled to
     photos.forEach((p) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = p.src;
-      imgCacheRef.current.set(p.src, img);
+      if (!p.src.match(/\.(mp4|webm|mov)$/i)) {
+        const img = new Image();
+        img.src = p.src;
+      }
     });
+  }, [photos]);
 
-    let lastCheckTime = 0;
-    let rafId: number;
+  useEffect(() => {
+    const handleTimeUpdate = () => {
+      if (activeMediaRef.current instanceof HTMLVideoElement) {
+        drawMedia(activeMediaRef.current, false);
+      }
+    };
 
-    const checkCenterCard = (timestamp: number) => {
-      // Throttle checks by AMBIENT_BUILD.interval (100ms) like TMG pulseGlow
-      if (timestamp - lastCheckTime >= AMBIENT_BUILD.interval) {
-        lastCheckTime = timestamp;
-        const cards = document.querySelectorAll('.timeline-item[data-photo-index]');
-        const viewportCenterY = window.innerHeight / 2;
-        let closestCard: Element | null = null;
-        let minDist = Infinity;
+    // Clean up old video listener if we are switching away from it
+    if (activeMediaRef.current instanceof HTMLVideoElement) {
+      activeMediaRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+    }
 
-        for (let i = 0; i < cards.length; i++) {
-          const rect = cards[i].getBoundingClientRect();
-          const cardCenterY = rect.top + rect.height / 2;
-          const dist = Math.abs(cardCenterY - viewportCenterY);
-          if (dist < minDist) {
-            minDist = dist;
-            closestCard = cards[i];
-          }
-        }
+    const currentCard = document.querySelector(`.timeline-item[data-photo-index="${activeMediaIndex}"]`);
+    if (!currentCard) return;
 
-        if (closestCard) {
-          const idx = Number((closestCard as HTMLElement).dataset.photoIndex ?? 0);
-          const src = photos[idx]?.src;
-          if (src && src !== currentSrcRef.current) {
-            loadAndDraw(src);
-          }
+    const media = currentCard.querySelector('.memory-media-video, .card-front img') as HTMLImageElement | HTMLVideoElement | null;
+    
+    if (media) {
+      activeMediaRef.current = media;
+      const flush = isFirstDrawRef.current;
+      if (flush) isFirstDrawRef.current = false;
+
+      if (media instanceof HTMLVideoElement) {
+        media.addEventListener('timeupdate', handleTimeUpdate);
+        drawMedia(media, flush);
+      } else if (media instanceof HTMLImageElement) {
+        if (media.complete) {
+          drawMedia(media, flush);
+        } else {
+          media.onload = () => {
+            if (activeMediaRef.current === media) drawMedia(media, flush);
+          };
         }
       }
-
-      rafId = requestAnimationFrame(checkCenterCard);
-    };
-
-    rafId = requestAnimationFrame(checkCenterCard);
+    }
 
     return () => {
-      cancelAnimationFrame(rafId);
+      if (activeMediaRef.current instanceof HTMLVideoElement) {
+        activeMediaRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+      }
     };
-  }, [photos, loadAndDraw]);
+  }, [activeMediaIndex, drawMedia]);
 
   return (
     <canvas
@@ -135,8 +109,8 @@ export function AmbienceCanvas({ photos }: AmbienceCanvasProps) {
         inset: 0,
         width: '100%',
         height: '100%',
-        filter: `blur(${AMBIENT_BUILD.blur}px) opacity(${AMBIENT_BUILD.opacity}) saturate(2) brightness(0.5)`,
-        transform: 'scale(1.2)', // prevent blur edge bleed
+        filter: `opacity(${AMBIENT_BUILD.opacity}) saturate(2) brightness(0.5)`,
+        transform: 'scale(1.2)',
         transformOrigin: 'center',
         zIndex: 0,
         pointerEvents: 'none',

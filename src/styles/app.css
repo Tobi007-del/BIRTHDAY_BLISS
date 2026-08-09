@@ -10,6 +10,10 @@ body {
   width: 100%;
 }
 
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .app-container {
   position: relative;
   width: 100%;
@@ -98,88 +102,93 @@ body {
   background-repeat: repeat-y;
   background-position: center top;
   filter: drop-shadow(0 0 8px rgba(120, 65, 25, 0.7)) drop-shadow(0 0 20px rgba(80, 35, 10, 0.5));
-  clip-path: inset(0% 0% 100% 0%);
-  -webkit-clip-path: inset(0% 0% 100% 0%);
 }
 
 /* Timeline Cards Hugging the Center */
 .timeline-item {
   position: relative;
   width: 100%;
+  margin-bottom: 25vh; /* Massive spacing for a slow, gentle scroll */
   display: flex;
-  margin: 15vh 0; 
-  /* Initial state managed by GSAP fromTo */
 }
 
 /* Only apply 3D box reflection to the single active card in view to prevent GPU texture thrashing */
-.timeline-item.in-view {
+.timeline-item.in-view .card-wrapper {
   -webkit-box-reflect: below 15px linear-gradient(to bottom, transparent 55%, rgba(255, 255, 255, 0.25));
 }
 
-/* Push to the left of the stem (50% mark + small gap) */
+/* Push to the left of the stem */
 .timeline-item.left {
   justify-content: flex-end;
-  padding-right: 53%; 
+  padding-right: calc(50% + 30px);
 }
 
 /* Push to the right of the stem */
 .timeline-item.right {
   justify-content: flex-start;
-  padding-left: 53%;
-}
-
-/* Ambient glow behind card (Apple Music-style) */
-.card-ambient {
-  position: absolute;
-  inset: -15px;
-  border-radius: 28px;
-  background-size: cover;
-  background-position: center;
-  filter: blur(25px) saturate(2) brightness(0.5);
-  transform: scale(1.05);
-  z-index: -1;
-  opacity: 0.85;
+  padding-left: calc(50% + 30px);
 }
 
 .card-wrapper {
   position: relative;
-  display: inline-block; 
-  min-width: 40vw;
-  min-height: 40vh;
+  width: 450px; 
+  /* Ambient glow behind card (Apple Music-style) */
   perspective: 1500px;
-  z-index: 10;
-  transition: z-index 0s;
 }
 
-.card-wrapper:hover {
-  z-index: 9999; 
+.card-ambient {
+  position: absolute;
+  inset: -30px; /* stretch slightly further to create a soft outer glow naturally */
+  z-index: 0;
+  border-radius: 20px;
+  background-size: cover;
+  background-position: center;
+  filter: saturate(200%) brightness(0.8) opacity(0.6);
+  pointer-events: none;
+  /* Simple pulse to make it feel alive without killing the GPU */
+  animation: ambientPulse 4s infinite alternate ease-in-out;
+}
+
+@keyframes ambientPulse {
+  0% { filter: saturate(180%) brightness(0.6) opacity(0.4); transform: scale(0.95); }
+  100% { filter: saturate(250%) brightness(0.9) opacity(0.8); transform: scale(1.05); }
 }
 
 .memory-card {
   position: relative;
   width: 100%;
-  height: 100%;
   transform-style: preserve-3d;
   /* NO CSS transition — GSAP owns the rotateY transform entirely */
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
-  border-radius: 20px;
+  z-index: 10;
+  border-radius: 12px;
+  /* Minimal glassmorphism border */
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .card-face {
+  /* position absolute covers the wrapper */
   backface-visibility: hidden;
-  border-radius: 20px;
+  -webkit-backface-visibility: hidden;
+  border-radius: 12px;
   overflow: hidden;
+  background: #000; 
 }
 
 .card-front {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transform: rotateY(0deg);
+}
+
+.card-inner-ambient {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  z-index: 0;
+  filter: saturate(150%) brightness(0.4);
+  pointer-events: none;
 }
 
 .card-front img {
@@ -193,16 +202,14 @@ body {
 }
 
 .card-back {
+  transform: rotateY(180deg);
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(10, 8, 5, 0.92);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(120, 65, 25, 0.6);
-  transform: rotateY(180deg);
+  /* Dark, elegant parchment vibe for the poetry */
+  background: linear-gradient(135deg, rgba(20, 10, 5, 0.95), rgba(40, 20, 15, 0.98));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -223,7 +230,7 @@ body {
   font-size: clamp(1.2rem, 2vw, 2rem); 
   color: #e9e0cc;
   line-height: 1.6;
-  text-shadow: 0 0 30px rgba(100, 50, 20, 0.5), 0 2px 8px rgba(0, 0, 0, 0.9);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
 }
 
 /* Stem connectors (the tiny branches to the main stem) */
@@ -231,7 +238,7 @@ body {
   content: '';
   position: absolute;
   top: 50%;
-  width: 3%;
+  width: 60px;
   height: 2px;
   background: linear-gradient(90deg, transparent, rgba(120, 65, 25, 0.8), transparent);
   z-index: 0;

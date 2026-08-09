@@ -14,6 +14,9 @@ export const store = reactive({
     lastChapter: "intro",
     playCount: 0,
     hasWatchedClimax: false,
+    audioUnlocked: false,
+    activeMediaIndex: 0,
+    isOutroVisible: false,
   },
   data: null as any | null,
 });

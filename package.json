@@ -14,7 +14,7 @@
     "gsap": "^3.15.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "sia-reactor": "^0.0.37"
+    "sia-reactor": "^0.0.39"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",

@@ -10,16 +10,22 @@ export const PlayButton: React.FC = () => {
 
   const isPlaying = s.state.playing;
 
-  // Ensure ScrollTrigger recalculates accurate layout metrics whenever Fullscreen mode or window resizing occurs
+  // Re-add manual layout refreshes because entering fullscreen drastically changes viewport height on mobile.
+  // To avoid the stutter/hang, we pause the scroll physics while the refresh is happening!
+  const isRefreshingRef = useRef(false);
+
   useEffect(() => {
     const handleResizeOrFS = () => {
+      isRefreshingRef.current = true;
       setTimeout(() => {
         ScrollTrigger.refresh();
       }, 200);
       setTimeout(() => {
         ScrollTrigger.refresh();
+        isRefreshingRef.current = false;
       }, 600);
     };
+    
     window.addEventListener('fullscreenchange', handleResizeOrFS);
     window.addEventListener('webkitfullscreenchange', handleResizeOrFS);
     window.addEventListener('resize', handleResizeOrFS);
@@ -39,6 +45,13 @@ export const PlayButton: React.FC = () => {
       allCards.forEach((c) => {
         gsap.set(c, { rotateY: 180 });
       });
+
+      // Pause physics for 600ms specifically on initial play to hide the initial fullscreen UI shift
+      isRefreshingRef.current = true;
+      setTimeout(() => {
+        ScrollTrigger.refresh();
+        isRefreshingRef.current = false;
+      }, 600);
 
       // Request Fullscreen on documentElement
       const elem = document.documentElement as any;
@@ -89,8 +102,15 @@ export const PlayButton: React.FC = () => {
       return;
     }
 
+    // Cache static DOM elements OUTSIDE the highly sensitive physics render loop
+    // to prevent garbage collection pressure and DOM searching on every single frame.
+    const cards = document.querySelectorAll('.timeline-item');
+    const viewportCenterY = window.innerHeight / 2;
+
     const step = () => {
-      if (!isPlaying) return;
+      // If the page is currently refreshing its geometry (e.g. entering fullscreen), pause movement!
+      // This completely eliminates the "stutter" hang, acting as a graceful 600ms starting pause.
+      if (!store.state.playing || isRefreshingRef.current) return;
 
       // Check if we reached the bottom of the page (Climax Wish)
       if (
@@ -117,10 +137,7 @@ export const PlayButton: React.FC = () => {
       }
 
       // Find closest card to the viewport center
-      const cards = document.querySelectorAll('.timeline-item');
-      const viewportCenterY = window.innerHeight / 2;
       let minDist = Infinity;
-
       for (let i = 0; i < cards.length; i++) {
         const rect = cards[i].getBoundingClientRect();
         const cardCenterY = rect.top + rect.height / 2;
@@ -130,25 +147,33 @@ export const PlayButton: React.FC = () => {
         }
       }
 
-      // Continuous dynamic scrolling: fast stem travel (12px/frame), gentle drift (0.5px/frame) around card center
-      let scrollSpeed = 12;
-      if (minDist < window.innerHeight * 0.45) {
-        const t = Math.max(0, minDist / (window.innerHeight * 0.45));
-        scrollSpeed = 0.5 + t * 11.5;
+      // Continuous dynamic scrolling
+      // Base drift speed is 1px/frame near cards, speeding up to 6px/frame when far away
+      let scrollSpeed = 6;
+      
+      if (window.scrollY < window.innerHeight * 0.6) {
+        // We are at the very top (intro text). Slow down drastically so they can read the poetry!
+        scrollSpeed = 1.0;
+      } else {
+        // Calculate slowdown based on an absolute pixel distance, not viewport height.
+        if (minDist < 800) {
+          const t = Math.max(0, minDist / 800); // 0 (at center) to 1 (at 800px)
+          // 1.0 base speed + up to 5.0 based on distance = max 6
+          scrollSpeed = 1.0 + t * 5.0;
+        }
       }
 
-      window.scrollBy(0, scrollSpeed);
-      ScrollTrigger.update();
-
-      rafRef.current = requestAnimationFrame(step);
+      // Use gsap's internal delta ratio to seamlessly normalize speed across all devices (60Hz, 120Hz, etc)
+      // We cap it at 1.5 so if the browser hangs or lags (e.g. during a layout shift), it DOES NOT instantly jump a huge distance!
+      const multiplier = Math.min(gsap.ticker.deltaRatio(), 1.5);
+      window.scrollBy(0, scrollSpeed * multiplier);
+      // Removed manual ScrollTrigger.update() because GSAP's ticker automatically updates it!
     };
 
-    rafRef.current = requestAnimationFrame(step);
+    gsap.ticker.add(step);
 
     return () => {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
+      gsap.ticker.remove(step);
     };
   }, [isPlaying]);
 
