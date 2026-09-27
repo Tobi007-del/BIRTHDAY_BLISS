@@ -15,7 +15,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "sia-reactor": "^0.0.46",
-    "tmg-media-player": "^0.0.31"
+    "tmg-media-player": "^0.0.32"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",

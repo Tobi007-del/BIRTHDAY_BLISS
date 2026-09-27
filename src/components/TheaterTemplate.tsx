@@ -5,10 +5,10 @@ import { store } from '../store';
 import '../styles/theater.css';
 import { AudioController } from './AudioController';
 import 'tmg-media-player/style.css';
-window.TMG_MEDIA_CSS_SRC = Symbol('T007_VIRTUAL_RESOURCE');
-import 'tmg-media-player/super';
+(window as any).TMG_MEDIA_CSS_SRC = Symbol('T007_VIRTUAL_RESOURCE');
 
-import { Player } from 'tmg-media-player/super';
+// @ts-ignore
+import * as tmg from 'tmg-media-player/super';
 
 // Video rendering (handled by TVP natively)
 const VideoCard = ({ config }: { config: any }) => {
@@ -17,7 +17,7 @@ const VideoCard = ({ config }: { config: any }) => {
   useEffect(() => {
     // Prevent Strict Mode double-instantiation on the same DOM node
     if (videoRef.current && !(videoRef.current as any).tmgPlayer) {
-      const player = new Player();
+      const player = new tmg.Player();
 
       player.configure({
         skeleton: { exclusivePlay: { value: "video" } },
@@ -28,7 +28,7 @@ const VideoCard = ({ config }: { config: any }) => {
         ...config
       });
 
-      player.attach(videoRef.current).catch(e => {
+      player.attach(videoRef.current).catch((e: any) => {
         console.warn("TMG Player Attach Warning:", e);
       });
     }
