@@ -145,6 +145,7 @@ body {
   background-position: center;
   filter: saturate(200%) brightness(0.8) opacity(0.6);
   pointer-events: none;
+  transform-origin: center center;
   /* Simple pulse to make it feel alive without killing the GPU */
   animation: ambientPulse 4s infinite alternate ease-in-out;
 }

@@ -8,6 +8,7 @@ import { Canopy } from './components/Canopy';
 import { Roots } from './components/Roots';
 import { PlayButton } from './components/PlayButton';
 import { AudioController } from './components/AudioController';
+import { TheaterTemplate } from './components/TheaterTemplate';
 import { store } from './store';
 import { useReactor } from 'sia-reactor/adapters/react';
 import './styles/index.css';
@@ -422,7 +423,12 @@ function App() {
     );
   }
 
+  if (s.data.template === 'theater') {
+    return <TheaterTemplate />;
+  }
+
   return <BirthdayBliss />;
 }
 
 export default App;
+

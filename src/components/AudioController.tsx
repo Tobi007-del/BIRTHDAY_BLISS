@@ -51,7 +51,17 @@ export function AudioController() {
 
     const videos = document.querySelectorAll('.memory-media-video');
     const outroVideo = document.querySelector('.outro-media-video') as HTMLVideoElement | null;
-    const activeMediaUrl = data?.photos[activeMediaIndex]?.src;
+    
+    // Safety check for templates (like 'joel') that don't use the photos array timeline
+    if (!data?.photos) {
+      // BGM Fade Logic for non-timeline templates just relies on playing state
+      // (TheaterTemplate video component handles its own BGM ducking on play/pause)
+      const targetVolume = playing ? 1.0 : 0.3;
+      gsap.to(bgm, { volume: targetVolume, duration: 0.5, ease: 'power2.out' });
+      return;
+    }
+
+    const activeMediaUrl = data.photos[activeMediaIndex]?.src;
     const isVideoCentered = !!activeMediaUrl?.match(/\.(mp4|webm|mov)$/i);
 
     // BGM Fade Logic via Native HTML5 Volume + GSAP
@@ -99,3 +109,4 @@ export function AudioController() {
     />
   );
 }
+

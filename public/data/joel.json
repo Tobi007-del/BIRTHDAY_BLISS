@@ -1,0 +1,114 @@
+{
+  "template": "theater",
+  "title": "Happy Birthday Joel ❤️",
+  "bgm": "/audios/Ed Sheeran - Photograph.mp3",
+  "opening": {
+    "title": "For the man whose distance could never make him far from my heart",
+    "subtitle": "I made something special for you. Open it when you're ready..."
+  },
+  "message": {
+    "title": "Happy Birthday, My Love",
+    "body": "I wish I could be there physically to celebrate with you today. But since I can't, I wanted to send a little piece of my heart across the miles to you instead."
+  },
+  "video": {
+    "caption": "I wish I could be there to say all of this while looking at you. For now, I hope this gets a little closer to doing that. ❤️",
+    "config": {
+      "playlist": {
+        "content": [
+          {
+            "media": {
+              "intent": {
+                "src": "/videos/girl-1.mp4"
+              },
+              "settings": {
+                "metadata": {
+                  "title": "A Toast to Joel (Part 1)",
+                  "artist": "Kehinde Osinowo",
+                  "profile": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=100&h=100&fit=crop&q=80",
+                  "chapterInfo": [
+                    {
+                      "title": "Not Together, But Close",
+                      "startTime": 0
+                    },
+                    {
+                      "title": "How Everything Started",
+                      "startTime": 50
+                    },
+                    {
+                      "title": "Celebrating You",
+                      "startTime": 116
+                    },
+                    {
+                      "title": "Grateful For Every Moment",
+                      "startTime": 174
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "media": {
+              "intent": {
+                "src": "/videos/girl-2.mp4"
+              },
+              "settings": {
+                "metadata": {
+                  "title": "A Toast to Joel (Part 2)",
+                  "artist": "Kehinde Osinowo",
+                  "profile": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=100&h=100&fit=crop&q=80",
+                  "chapterInfo": [
+                    {
+                      "title": "Beautiful Memories",
+                      "startTime": 0
+                    },
+                    {
+                      "title": "Today is About You",
+                      "startTime": 29
+                    },
+                    {
+                      "title": "To The Future",
+                      "startTime": 64
+                    },
+                    {
+                      "title": "I Love You",
+                      "startTime": 104
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "letter": {
+    "body": "Happy Birthday, My Love\n\nToday is a special day because it's the day the world got lucky to have you. I just want to take a moment to wish you a very happy birthday, my love. I hope this new chapter of your life brings you everything you've ever prayed for and more.\n\nMay your days be filled with joy, your heart with peace, and your life with endless blessings. May you continue to grow in all areas of your life - in your career, in your dreams, in your happiness and in everything that matters to you. May you never lack, may your efforts always bear fruit, and may you always be surrounded by good people.\n\nI pray that this new year gives you strength for the challenges, success in all your plans, and the kind of happiness that stays, not just for a moment, but for a lifetime. May you see bigger opportunities, achieve greater things, and be granted all the desires of your heart.\n\nYou deserve all the good things in this world and more. Your kindness, strength, love and the way you show up for me and the people around you is something truly special. I'm so grateful to have you in my life, and I pray you never stop being the amazing person you are.\n\nMay this birthday be the beginning of an even greater and more beautiful year for you. May you live long, stay healthy, stay happy, and continue to shine in everything you do. May God's favour always be on you, and may you never know lack.\n\nI hope you enjoy your day, celebrate yourself, and take in all the love, joy and blessings that come your way. Because you deserve it all - today and always.\n\nHappy Birthday once again, my love.\nLong life, good health, greater success, and continuous happiness. You are truly special.\n\nI love you today, tomorrow and always."
+  },
+  "distance": {
+    "title": "MILES APART, NEVER HEARTS APART ❤️",
+    "body": "Even though we are physically apart, the distance doesn't change how much you mean to me, or how present I am in your life. You are always with me, right here in my heart."
+  },
+  "guy_video": {
+    "caption": "Because you are truly special to me...",
+    "config": {
+      "media": {
+        "intent": {
+          "src": "/videos/guy-1.mp4"
+        },
+        "settings": {
+          "metadata": {
+            "title": "To the Man I Love",
+            "artist": "Kehinde Osinowo",
+            "profile": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=100&h=100&fit=crop&q=80"
+          }
+        }
+      }
+    }
+  },
+  "final": {
+    "image": "/images/guy-1.jpg",
+    "message": "Happy Birthday once again, my love. I can't wait until the day we don't have to say goodbye."
+  }
+}
